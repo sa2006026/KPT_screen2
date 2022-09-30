@@ -74,19 +74,32 @@ uFire_SHT20 sht20;
                                   // Hardware-specific library
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite graph1 = TFT_eSprite(&tft);
-/** Sprite needed for graph scrolling */
-// TFT_eSprite graph2 = TFT_eSprite(&tft);
-/** Value for graph1 */
-// int graph1Val = 1;
-/** Value for graph2 */
-// int graph2Val = 1;
 SimpleKalmanFilter kf = SimpleKalmanFilter(0.5, 0.5, 0.01);
 
 float HighY = 100;
 float LowY = 40;
 uint16_t t_x = 0, t_y = 0;
 
-int fill = 0;
+#define KEY_X 40 // Centre of key
+#define KEY_Y 20
+#define KEY_W 62 // Width and height
+#define KEY_H 30
+#define KEY_SPACING_X 18 // X and Y gap
+#define KEY_SPACING_Y 20
+#define KEY_TEXTSIZE 1   // Font size multiplier
+
+// Using two fonts since numbers are nice when bold
+#define LABEL1_FONT &FreeSansOblique12pt7b // Key label font 1
+#define LABEL2_FONT &FreeSansBold12pt7b 
+
+char keyLabel[15][5] = {"New", "Del", "Send", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0","#" };
+uint16_t keyColor[15] = {TFT_RED, TFT_DARKGREY, TFT_DARKGREEN,
+                         TFT_BLUE, TFT_BLUE, TFT_BLUE,
+                         TFT_BLUE, TFT_BLUE, TFT_BLUE,
+                         TFT_BLUE, TFT_BLUE, TFT_BLUE,
+                         TFT_BLUE, TFT_BLUE,TFT_BLUE
+                        };
+TFT_eSPI_Button key[15];
 
 int stage = 0;
 
@@ -110,6 +123,25 @@ void DrawHomescreen(){
 
 // }
 
+void drawKeypad()
+{
+  // Draw the keys
+  for (uint8_t row = 0; row < 5; row++) {
+    for (uint8_t col = 0; col < 3; col++) {
+      uint8_t b = col + row * 3;
+
+      if (b < 3) tft.setFreeFont(LABEL1_FONT);
+      else tft.setFreeFont(LABEL2_FONT);
+
+      key[b].initButton(&tft, KEY_X + col * (KEY_W + KEY_SPACING_X),
+                        KEY_Y + row * (KEY_H + KEY_SPACING_Y), // x, y, w, h, outline, fill, text
+                        KEY_W, KEY_H, TFT_WHITE, keyColor[b], TFT_WHITE,
+                        keyLabel[b], KEY_TEXTSIZE);
+      key[b].drawButton();
+    }
+  }
+}
+
 void ResetXY(){
   t_x = 0;
   t_y = 0;
@@ -122,12 +154,10 @@ void setup(){
   tft.init();
 
   tft.setRotation(0);
-
   tft.fillScreen(TFT_BLACK);
   graph1.createSprite(200, 100);
-
   DrawHomescreen();
-
+  
 }
 
 void loop(){
@@ -142,7 +172,7 @@ void loop(){
 
         } 
           graph1.pushSprite(20, 32);
-
+        tft.setTextFont(1);
         tft.setTextColor(TFT_WHITE, TFT_BLACK);
         tft.drawFloat(float(HighY),0,1, 32,1);
         tft.drawFloat(float(LowY),0,10, 132,1);
@@ -187,7 +217,7 @@ void loop(){
          
         
             ResetXY();
-            delay(500);
+            delay(400);
         }
       }
       if(stage == 1){ 
@@ -204,7 +234,9 @@ void loop(){
           tft.pushImage(180, 260, settingWidth  ,settingHeight, setting);
           tft.fillRoundRect(10, 10, 220, 30,15 ,TFT_RED);
           tft.setTextColor(TFT_WHITE, TFT_RED);
-          tft.drawString("PID_controller", 80,15,2);
+          // tft.drawString("PID_controller", 80,15,2);
+
+          drawKeypad();
 
           stage = 2;
           printf("stage2 \n");
